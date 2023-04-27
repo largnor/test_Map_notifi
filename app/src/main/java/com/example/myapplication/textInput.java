@@ -3,6 +3,7 @@ package com.example.myapplication;
 import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -44,12 +45,19 @@ public class textInput extends AppCompatActivity {
         search_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
                 String location = editText_address.getText().toString();
 
 
-                Intent intent = new Intent(textInput.this, MapsActivity.class);
-                intent.putExtra("location_name",location);
-                startActivity(intent);
+                if(location.isEmpty()) {
+
+                    Toast toast = Toast.makeText(getApplicationContext(), "도착 역을 입력해주세요", Toast.LENGTH_LONG);
+                    toast.show();
+                }else {
+                    Intent intent = new Intent(textInput.this, MapsActivity.class);
+                    intent.putExtra("location_name", location);
+                    startActivity(intent);
+                }
             }
         });
 
