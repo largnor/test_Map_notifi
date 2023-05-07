@@ -29,6 +29,7 @@ import android.os.Vibrator;
 import android.view.View;
 import android.widget.Toast;
 import com.naver.maps.geometry.LatLng;
+import com.naver.maps.map.CameraAnimation;
 import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.LocationSource;
 import com.naver.maps.map.LocationTrackingMode;
@@ -37,6 +38,7 @@ import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.OnMapReadyCallback;
 import com.naver.maps.map.UiSettings;
 import com.naver.maps.map.overlay.CircleOverlay;
+import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.util.FusedLocationSource;
 
 public class MapsActivity extends Activity implements OnMapReadyCallback,LocationSource.OnLocationChangedListener{
@@ -51,6 +53,9 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
     private Location mCurrentLocation;
     private LatLng mOverlayLocation = new LatLng(35.267207,129.232717); // 임의의 오버레이 영역 좌표
     private String location_name;
+
+    private String xlocation;
+    private String ylocation;
 
 
     @Override
@@ -71,6 +76,8 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
 
         Bundle bundle = intent.getExtras();
         location_name = bundle.getString("location_name");
+        xlocation = bundle.getString("xlocation");
+        ylocation = bundle.getString("ylocation");
 
 
         // 알림 권한 요청
@@ -83,11 +90,9 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
             }
         }
 
+
+
     }
-
-
-
-
 
     // request code와 권한획득 여부 확인
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -115,6 +120,26 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
 
     // 맵을 구현하고 좌표에 맞는 영역 구현
     public void onMapReady(@NonNull NaverMap naverMap) {
+            this.naverMap = naverMap;
+            float newZoomLevel = 15.0f;
+
+        //xy 좌표값에 마커 생성
+            double locationx = Double.parseDouble(xlocation);
+            double locationy = Double.parseDouble(ylocation);
+            LatLng latLng = new LatLng(locationx,locationy);
+
+            Marker marker = new Marker();
+            marker.setPosition(latLng);
+            marker.setMap(naverMap);
+
+            CameraUpdate cameraUpdate = CameraUpdate.scrollTo(latLng);
+            cameraUpdate.animate(CameraAnimation.Easing);
+            cameraUpdate.zoomTo(newZoomLevel);
+
+
+            naverMap.moveCamera(cameraUpdate);
+
+
 
             locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
             naverMap.setLocationSource(locationSource);
@@ -123,7 +148,7 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
             UiSettings uiSettings = naverMap.getUiSettings();
             uiSettings.setLocationButtonEnabled(true);
 
-
+/*
             //원 생성
             CircleOverlay circleOverlay = new CircleOverlay();
             circleOverlay.setCenter(mOverlayLocation);
@@ -131,20 +156,23 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
             circleOverlay.setColor(Color.TRANSPARENT);
             circleOverlay.setOutlineColor(Color.RED);
             circleOverlay.setOutlineWidth(3);
-            CameraUpdate cameraUpdate = CameraUpdate.zoomTo(15); // 카메라 줌설정
 
-            naverMap.setLocationSource(locationSource);
 
-            naverMap.setLocationTrackingMode(LocationTrackingMode.Follow); // 위치추적 follow 모드 활성 조작시 nofollow 모드로 바뀜
 
-            circleOverlay.setMap(naverMap);
-            naverMap.moveCamera(cameraUpdate);
+         */
+             //circleOverlay.setMap(naverMap);
+          //  naverMap.setLocationTrackingMode(LocationTrackingMode.Follow); // 위치추적 follow 모드 활성 조작시 nofollow 모드로 바뀜
+          //  naverMap.moveCamera(cameraUpdate);
 
 
         }
-/// 위치값이 변경되는걸 감지하고 알림을 호출하는 부분
+
+
+
+        /// 위치값이 변경되는걸 감지하고 알림을 호출하는 부분
     @Override
     public void onLocationChanged(@NonNull Location location) {
+        /*
             int count=0;
             mCurrentLocation = location;
              Vibrator vibrator = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
@@ -166,6 +194,8 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
                     aram_call++;
                 }
             }
+
+         */
     }
 
 
@@ -178,10 +208,11 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
     }
 
 
-    //// 알림 채널 생성 및 호출
+    /** 알림 채널 생성 및 호출*/
     public void createNotification(){
         show();
     }
+    /** 알림호출시 내용 설정*/
     private void show(){
         int notificationId = 1;
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "alarm_test");
@@ -225,7 +256,7 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
     }
 
 
-    // 뒤로가기 작동
+    /** 뒤로가기*/
     @Override
     public void onBackPressed() {
        super.onBackPressed();

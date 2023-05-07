@@ -48,6 +48,7 @@ dependencies {
     implementation('com.naver.maps:map-sdk:3.16.2') {
         exclude group: 'com.android.support'
     }
+    implementation 'com.opencsv:opencsv:5.6'
 
 
 }
