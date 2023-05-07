@@ -62,13 +62,10 @@ public class textInput extends AppCompatActivity {
             public void onClick(View view) {
 
                 String location = editText_address.getText().toString();
-                String clientId = "f0mtotdif9";
-                String clientSecret = "v9rgXsx7Rw6OaXCvf1k2JSLXAApjPNmUWMMhOFZc";
-
-               /*
+                            
                 String clientId = "{클라이언트 아이디 입력}";
                 String clientSecret = "{시크릿 키 입력}";
-                */
+           
                 if(location.isEmpty()) {
 
                     Toast toast = Toast.makeText(getApplicationContext(), "도착 역을 입력해주세요", Toast.LENGTH_LONG);
