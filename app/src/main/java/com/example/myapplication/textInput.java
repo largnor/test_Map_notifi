@@ -50,7 +50,7 @@ public class textInput extends AppCompatActivity {
     EditText arrive_address;
     Button search_button;
     private String location,location_st;
-    private static final String SERVICE_KEY = "wA8KGG5iCXqcnDPZAnyvsBDlpjHWg4%2BkJ01oJSTcIRaECaiYGlluoUzC7DhH1cJODQAIAVT%2FNY8yjKwmG3B3eQ%3D%3D";
+    private static final String SERVICE_KEY = "/*input your service key*/";
     private static final String API_URL = "http://data.humetro.busan.kr/voc/api/open_api_distance.tnn";
 
     private List<Integer> time_count = new ArrayList<>();
