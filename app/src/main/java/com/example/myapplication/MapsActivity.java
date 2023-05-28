@@ -2,8 +2,10 @@ package com.example.myapplication;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.app.Activity;
@@ -28,8 +30,10 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Vibrator;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 import com.naver.maps.geometry.LatLng;
+import com.naver.maps.geometry.LatLngBounds;
 import com.naver.maps.map.CameraAnimation;
 import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.LocationSource;
@@ -53,19 +57,22 @@ import java.net.URLEncoder;
 import javax.net.ssl.HttpsURLConnection;
 
 public class MapsActivity extends Activity implements OnMapReadyCallback,LocationSource.OnLocationChangedListener{
-    private static final int NOTIFICATION_PERMISSION_CODE = 123;
+
     private MapView mapView;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
+    private static final int PERMISSION_REQUEST_CODE = 1;
     private FusedLocationSource locationSource;
     private LocationSource.OnLocationChangedListener onLocationChangedListener;
     private NaverMap naverMap;
+    private CountDownTimer countDownTimer;
+
+
+    private static final String CHANNEL_ID = "my_channel_id";
+    private static final int NOTIFICATION_ID = 1;
+    private NotificationManager notificationManager;
+
 
     private int time_left;
-    private String start_name;
-    private String arrive_name;
-
-    private String startnum, stopnum;
-
 
 
     private String start_X,start_y,stop_X,stop_Y;
@@ -78,6 +85,35 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
         Intent intent = getIntent();
         mapView = findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);
+
+
+        Button startButton = findViewById(R.id.myButton);
+        notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        createNotificationChannel();
+        startButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                if (ContextCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.VIBRATE)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    // 권한이 이미 부여되었으므로 진행
+                    // 알림 관련 코드 실행
+                        setCountDownTimer();
+                } else {
+                    // 권한이 부여되지 않았으므로 권한 요청
+
+                    ActivityCompat.requestPermissions(MapsActivity.this, new String[]{Manifest.permission.VIBRATE}, PERMISSION_REQUEST_CODE);
+                }
+
+
+                startButton.setVisibility(View.GONE);
+                Toast.makeText(MapsActivity.this, "안내를 시작합니다", Toast.LENGTH_SHORT).show();
+
+
+            }
+        });
+
+
 
         locationSource = new FusedLocationSource(this,LOCATION_PERMISSION_REQUEST_CODE);
 
@@ -94,33 +130,27 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
         time_left = bundle.getInt("time_left");
 
 
-        CountDownTimer countDownTimer = new CountDownTimer(time_left * 1000, 1000) {
+    }
+
+    private void setCountDownTimer(){
+
+        countDownTimer = new CountDownTimer(time_left * 1000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                long seconds = millisUntilFinished / 1000;
-                System.out.println("Seconds remaining: " + seconds);
 
+                showNotification(millisUntilFinished);
+                if(millisUntilFinished<=30000){
+                    showNotification(millisUntilFinished);
+                }
             }
 
             @Override
             public void onFinish() {
+                cancelNotification();
                 System.out.println("Countdown finished!");
             }
         };
-
         countDownTimer.start();
-
-        // 알림 권한 요청
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel("my_channel_id", "My Channel", NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
-            if (checkSelfPermission(android.Manifest.permission.ACCESS_NOTIFICATION_POLICY) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.ACCESS_NOTIFICATION_POLICY}, NOTIFICATION_PERMISSION_CODE);
-            }
-        }
-
-
     }
 
 
@@ -137,22 +167,11 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
             }
         }
 
-        if (requestCode == NOTIFICATION_PERMISSION_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "알림 권한이 승인되었습니다.", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "알림 권한이 거부되었습니다.", Toast.LENGTH_SHORT).show();
-            }
-        }
-
-
-
     }
 
-    // 맵을 구현하고 좌표에 맞는 영역 구현
     public void onMapReady(@NonNull NaverMap naverMap) {
             this.naverMap = naverMap;
-            float newZoomLevel = 15.0f;
+
 
             //시작역 좌표값 마커생성
             double startlocx = Double.parseDouble(start_X);
@@ -164,6 +183,14 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
             double stoplocy = Double.parseDouble(stop_Y);
             LatLng stoplatLng = new LatLng(stoplocx,stoplocy);
 
+
+            double center_x = (startlocx+stoplocx)/2;
+            double center_y = (startlocy+startlocy)/2;
+            LatLng target = new LatLng(center_x,center_y);
+
+
+            LatLngBounds bounds = new LatLngBounds(startlatlng,stoplatLng);
+            int padding = 200;
             Marker stop_marker = new Marker();
             Marker start_marker = new Marker();
 
@@ -172,9 +199,10 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
             stop_marker.setPosition(stoplatLng);
             stop_marker.setMap(naverMap);
 
-            CameraUpdate cameraUpdate = CameraUpdate.scrollTo(stoplatLng);
-            cameraUpdate.animate(CameraAnimation.Easing);
-            cameraUpdate.zoomTo(newZoomLevel);
+            CameraUpdate cameraUpdate = CameraUpdate.scrollTo(target)
+                                                    .animate(CameraAnimation.Easing)
+                                                    .fitBounds(bounds, padding);
+
 
 
             naverMap.moveCamera(cameraUpdate);
@@ -196,7 +224,58 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
         }
 
 
-        /// 위치값이 변경되는걸 감지하고 알림을 호출하는 부분
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "My Channel";
+            String description = "My Channel Description";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+    private void showNotification(long millisUntilFinished) {
+
+        long seconds = millisUntilFinished / 1000;
+        long re_minute = seconds / 60;
+        long re_second = seconds % 60;
+        String context = re_minute+ " 분 " + re_second+ " 초 ";
+
+/*
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle("예상시간입니다")
+                    .setContentText(context+" 남았습니다")
+                    .setOnlyAlertOnce(true)
+                    .setOngoing(true)
+                    .setVibrate(new long[]{0, 500});
+        }
+*/
+
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("예상시간입니다")
+                .setContentText(context + " 남았습니다")
+                .setOnlyAlertOnce(true)
+                .setOngoing(true)
+                .setVibrate(new long[]{0, 1000});
+
+
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
+    }
+
+    private void cancelNotification() {
+         notificationManager.cancel(NOTIFICATION_ID);
+    }
+
+
+        // 위치값이 변경되는걸 감지하고 알림을 호출하는 부분
     @Override
     public void onLocationChanged(@NonNull Location location) {
         /*
@@ -242,6 +321,11 @@ public class MapsActivity extends Activity implements OnMapReadyCallback,Locatio
        super.onBackPressed();
        locationSource = null;
 
+       if(countDownTimer != null){
+           countDownTimer.cancel();
+           System.out.println("Count Cancel");
+       }
+        cancelNotification();
 
        finish();
     }

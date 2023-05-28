@@ -56,6 +56,7 @@ public class textInput extends AppCompatActivity {
     private List<Integer> time_count = new ArrayList<>();
 
     private List<Integer> time_count2 = new ArrayList<>();
+    private int timeSum = 0;
 
 
 
@@ -91,6 +92,12 @@ public class textInput extends AppCompatActivity {
                     toast.show();
 
                 }else {
+                    if(timeSum != 0){
+
+                        time_count.clear();
+                        time_count2.clear();
+                        timeSum = 0;
+                    }
 
                     // CSV 파일 읽기
                     try {
@@ -152,7 +159,7 @@ public class textInput extends AppCompatActivity {
                             String arr_start_y = ylocation.get(index_sub);
                             int temp1 = Integer.parseInt(startnum);
                             int temp2 = Integer.parseInt(stopnum);
-                            int timeSum = 0;
+
 
 
                             if(find_direction(startnum,stopnum)>0){
@@ -202,6 +209,8 @@ public class textInput extends AppCompatActivity {
 
                         //Maps액티비티 실행.
                             startActivity(intent);
+
+                            System.out.println(timeSum);
 
 
 
@@ -259,10 +268,23 @@ public class textInput extends AppCompatActivity {
                         String line;
                         while ((line = reader.readLine()) != null) {
                             sb.append(line);
-                            System.out.println(sb.toString());
+
+                        }
+                        Thread thread2 = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                parseJSON(sb.toString());
+                            }
+                        });
+
+                        thread2.start();
+
+                        try{
+                            thread2.join();
+                        }catch (InterruptedException e){
+                            e.printStackTrace();
                         }
 
-                        parseJSON(sb.toString());
 
                         reader.close();
                         inputStream.close();
@@ -305,6 +327,11 @@ public class textInput extends AppCompatActivity {
             // 파싱된 값 사용
             for (int i = 0; i < itemArray.length(); i++) {
                 JSONObject getTime = itemArray.getJSONObject(i);
+
+                if(i == 2) {
+
+                    break;
+                }
                 String time = getTime.getString("time");
                 int time1 = Integer.parseInt(time);
                 String stopTime = getTime.getString("stoppingTime");
@@ -314,8 +341,6 @@ public class textInput extends AppCompatActivity {
                 time_count2.add(time2);
 
 
-
-               System.out.println("time: " + time+", stoppingTime : "+stopTime);
             }
 
 
